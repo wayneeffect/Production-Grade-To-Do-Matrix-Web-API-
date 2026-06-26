@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do Matrix Control Panel</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0f172a; color: #e2e8f0; max-width: 600px; margin: 40px auto; padding: 20px; }
+        h1 { color: #38bdf8; border-bottom: 1px solid #334155; padding-bottom: 10px; }
+        .input-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        input { flex: 1; padding: 10px; border-radius: 6px; border: 1px solid #475569; background: #1e293b; color: white; }
+        button { padding: 10px 16px; border: none; border-radius: 6px; background: #0284c7; color: white; cursor: pointer; font-weight: bold; }
+        button:hover { background: #0369a1; }
+        button.secondary { background: #475569; }
+        button.secondary:hover { background: #334155; }
+        ul { list-style: none; padding: 0; }
+        li { background: #1e293b; padding: 12px; border-radius: 6px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #334155; }
+        .completed { text-decoration: line-through; color: #64748b; opacity: 0.7; }
+    </style>
+</head>
+<body>
+
+    <h1>📋 Task Matrix Dashboard</h1>
+    
+    <div class="input-group">
+        <input type="text" id="taskTitle" placeholder="Enter task payload...">
+        <button onclick="addTask()">Add Task</button>
+    </div>
+
+    <ul id="taskList"></ul>
+
+    <button class="secondary" onclick="clearCompleted()">Clear Completed items</button>
+
+    <script>
+        async function fetchTasks() {
+            const res = await fetch('/api/tasks');
+            const tasks = await res.json();
+            const list = document.getElementById('taskList');
+            list.innerHTML = '';
+            
+            tasks.forEach((task, index) => {
+                const li = document.createElement('li');
+                li.className = task.completed ? 'completed' : '';
+                li.innerHTML = `
+                    <span>${task.completed ? '✅' : '❌'} ${task.title}</span>
+                    ${!task.completed ? `<button onclick="completeTask(${index})">Resolve</button>` : ''}
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        async function addTask() {
+            const input = document.getElementById('taskTitle');
+            if (!input.value.trim()) return;
+            await fetch('/api/tasks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title: input.value })
+            });
+            input.value = '';
+            fetchTasks();
+        }
+
+        async function completeTask(index) {
+            await fetch(`/api/tasks/complete/${index}`, { method: 'POST' });
+            fetchTasks();
+        }
+
+        async function clearCompleted() {
+            await fetch('/api/tasks/clear', { method: 'POST' });
+            fetchTasks();
+        }
+
+        window.onload = fetchTasks;
+    </script>
+</body>
+</html>
